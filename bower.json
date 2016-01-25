@@ -1,0 +1,23 @@
+{
+  "name": "friendly-broccoli",
+  "description": "Make working with canvas more easy",
+  "main": "lib/friendly-broccoli.js",
+  "authors": [
+    "Jeffrey Arts <sjeffff@gmail.com>"
+  ],
+  "license": "ISC",
+  "keywords": [
+    "canvas",
+    "photoshop",
+    "broccoli"
+  ],
+  "homepage": "https://github.com/JeffreyArts/friendly-broccoli",
+  "moduleType": [],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
