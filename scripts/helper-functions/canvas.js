@@ -8,9 +8,10 @@ function createCanvas() {
 /**
  * Add layer to Canvas
  */
-function addLayerToCanvas(canvas,layer) {
-    return getContext(canvas).drawImage(layer, 0, 0);
-}
+FriendlyBroccoli.prototype.addLayerToCanvas = function (layer) {
+    layer.context.drawImage(layer.image, 0, 0);
+    return this.context.drawImage(layer.cvs, 0, 0);
+};
 
 /**
  * Clear Canvas

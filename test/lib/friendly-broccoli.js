@@ -1,3 +1,194 @@
+var FriendlyBroccoli = function(){
+
+    // Set defaults
+    this.canvas = createCanvas();
+    this.context = getContext(this.canvas);
+    this.layers = {
+        'layer0': new this.layer('Layer0')
+    };
+
+
+    /**
+     * Get layer
+     */
+    this.getLayer = function(name) {
+        return this.layers[name];
+    };
+
+    /**
+     * Get image
+     */
+    this.getImage = function() {
+
+        for (var layer in this.layers) {
+            this.addLayerToCanvas(this.layers[layer]);
+        }
+
+        return this.canvas.toDataURL("image/png");
+    };
+
+
+};
+
+
+FriendlyBroccoli.prototype.layer = function layer(name) {
+
+    this.cvs        = createCanvas();
+    this.context    = getContext(this.cvs);
+    this.name       = name || 'Layer 0';
+    this.image      = null;
+    this.x          = 0;
+    this.y          = 0;
+    this.width      = 100;
+    this.height     = 100;
+
+
+    /**
+     * Resize layer
+     */
+    this.resizeLayer = function (options) {
+        if (dev) console.log('resize image');
+        if (typeof options != 'object') options = {};
+
+        clearCanvas(canvas);
+        var context = getContext(canvas);
+
+        var aspectRatio = options.aspectRatio || 1;
+        var x           = options.x || 0;
+        var y           = options.y || 0;
+        var image       = options.image || '';
+        var tempCanvas  = createCanvas();
+        var tempContext = getContext(tempCanvas);
+
+        context.canvas.width = image.width * aspectRatio;
+        context.canvas.height = image.height * aspectRatio;
+
+        return new Promise(function(resolve, reject){
+            context.drawImage(image, x, y, x+context.canvas.width, y+context.canvas.height);
+            resolve(image);
+        });
+    }; // Resize layer
+
+
+
+    /**
+     * Add image
+     */
+    this.addImage = function(image, options){
+        var src, self;
+
+        // Set defaults
+        if (typeof options != 'object') options = {};
+        self = this;
+
+
+        // Set image source & image <img> object
+        if (typeof image == 'object') {
+            src     = image.src;
+        } else {
+            src     = image;
+            image   = new Image();
+            image.src = src;
+        }
+
+        if (options.crossOrigin) {
+            image.crossOrigin = "Anonymous";
+        }
+
+        return new Promise(function(resolve, reject){
+            image.onload = function(){
+                self.context.drawImage(image, 0, 0);
+                self.image = image;
+                resolve(image);
+            };
+        });
+    }; // Add Image
+};
+
+
+
+
+
+
+function createGradientMask(canvas, options) {
+    if (dev) console.log('create Gradient Mask');
+
+    var context     = getContext(canvas)
+    var start       = options.start || 0;
+    var end         = options.end || 0;
+    var colors      = options.colors || ['black','transparent'];
+    var direction   = options.direction;
+    var width       = context.canvas.width;
+    var height      = context.canvas.height;
+    var horizontal  = direction === 'horizontal' || direction === 'hor' ? true : false;
+
+
+
+    if (start.indexOf('%' >= 0)) {
+        start = calculatePercentage(start, horizontal ? width : height);
+    }
+
+    if (end.indexOf('%' >= 0)) {
+        end = calculatePercentage(end, horizontal ? width : height);
+    }
+
+
+    context.fillStyle = createGradient(canvas,{
+        x: horizontal ? start : 0,
+        y: horizontal ? 0 : start,
+        width: horizontal ? end : 0,
+        height: horizontal ? 0 : end,
+        colors:colors,
+        direction: direction
+    });
+    context.fillRect(0, 0, width, height);
+
+}
+
+function addMask(canvas, options) {
+    if (dev) console.log('add Mask');
+
+    var context     = getContext(canvas);
+    var x           = options.x || 0;
+    var y           = options.y || 0;
+    var width       = options.width || canvas.width;
+    var height      = options.height || canvas.height;
+    var mask        = options.mask || document.createElement('img');
+    var layerMask           = createLayer();
+    var layerMaskContext    = getContext(layerMask);
+
+    // Size the layermask to the same size of the canvas
+    layerMaskContext.canvas.width = context.canvas.width;
+    layerMaskContext.canvas.height = context.canvas.height;
+
+
+    // Calculate percentages to numbers
+    if (typeof width == 'string' && width.indexOf('%' >= 0)) {
+        width = calculatePercentage(width, context.canvas.width);
+    }
+
+    if (typeof x == 'string' && x.indexOf('%' >= 0)) {
+        x = calculatePercentage(x, width);
+    }
+
+
+    // Create gradient, otherwise apple (transparent) image
+    if (mask.gradient) {
+
+        createGradientMask(layerMask, mask.gradient);
+
+    } else {
+        layerMaskContext.drawImage(mask, 0, 0, width, height);
+    }
+
+
+    layerMaskContext.globalCompositeOperation = "source-out";
+    layerMaskContext.drawImage(options.originalImage, 0, 0, width, height); // Original image
+
+    addLayerToCanvas(canvas, layerMask, options);
+
+}
+
 /**
 
     StackBlur - a fast almost Gaussian Blur For Canvas
@@ -618,9 +809,10 @@ function createCanvas() {
 /**
  * Add layer to Canvas
  */
-function addLayerToCanvas(canvas,layer) {
-    return getContext(canvas).drawImage(layer, 0, 0);
-}
+FriendlyBroccoli.prototype.addLayerToCanvas = function (layer) {
+    layer.context.drawImage(layer.image, 0, 0);
+    return this.context.drawImage(layer.cvs, 0, 0);
+};
 
 /**
  * Clear Canvas
@@ -691,9 +883,9 @@ var getBase64Image = function (canvas) {
 /**
  * create canvas should NOT be called directly
  */
-function createLayer() {
-    return createCanvas();
-}
+// function createLayer() {
+//     return createCanvas();
+// }
 
 
 function addBlur(canvas, options) {
@@ -751,118 +943,4 @@ function loadImage(canvas,options) {
             resolve(image);
         }
     });
-}
-
-var self = this;
-var dev = false;
-console.log('psLib loaded');
-
-
-
-
-function resizeLayer(canvas,options) {
-    if (dev) console.log('resize image');
-    if (typeof options != 'object') options = {};
-
-    clearCanvas(canvas);
-    var context = getContext(canvas);
-
-    var aspectRatio = options.aspectRatio || 1;
-    var x           = options.x || 0;
-    var y           = options.y || 0;
-    var image       = options.image || '';
-    var tempCanvas  = createCanvas();
-    var tempContext = getContext(tempCanvas);
-
-    context.canvas.width = image.width * aspectRatio;
-    context.canvas.height = image.height * aspectRatio;
-
-    return new Promise(function(resolve, reject){
-        context.drawImage(image, x, y, x+context.canvas.width, y+context.canvas.height);
-        resolve(image);
-    });
-}
-
-
-
-
-
-
-function createGradientMask(canvas, options) {
-    if (dev) console.log('create Gradient Mask');
-
-    var context     = getContext(canvas)
-    var start       = options.start || 0;
-    var end         = options.end || 0;
-    var colors      = options.colors || ['black','transparent'];
-    var direction   = options.direction;
-    var width       = context.canvas.width;
-    var height      = context.canvas.height;
-    var horizontal  = direction === 'horizontal' || direction === 'hor' ? true : false;
-
-
-
-    if (start.indexOf('%' >= 0)) {
-        start = calculatePercentage(start, horizontal ? width : height);
-    }
-
-    if (end.indexOf('%' >= 0)) {
-        end = calculatePercentage(end, horizontal ? width : height);
-    }
-
-
-    context.fillStyle = createGradient(canvas,{
-        x: horizontal ? start : 0,
-        y: horizontal ? 0 : start,
-        width: horizontal ? end : 0,
-        height: horizontal ? 0 : end,
-        colors:colors,
-        direction: direction
-    });
-    context.fillRect(0, 0, width, height);
-
-}
-
-function addMask(canvas, options) {
-    if (dev) console.log('add Mask');
-
-    var context     = getContext(canvas);
-    var x           = options.x || 0;
-    var y           = options.y || 0;
-    var width       = options.width || canvas.width;
-    var height      = options.height || canvas.height;
-    var mask        = options.mask || document.createElement('img');
-    var layerMask           = createLayer();
-    var layerMaskContext    = getContext(layerMask);
-
-    // Size the layermask to the same size of the canvas
-    layerMaskContext.canvas.width = context.canvas.width;
-    layerMaskContext.canvas.height = context.canvas.height;
-
-
-    // Calculate percentages to numbers
-    if (typeof width == 'string' && width.indexOf('%' >= 0)) {
-        width = calculatePercentage(width, context.canvas.width);
-    }
-
-    if (typeof x == 'string' && x.indexOf('%' >= 0)) {
-        x = calculatePercentage(x, width);
-    }
-
-
-    // Create gradient, otherwise apple (transparent) image
-    if (mask.gradient) {
-
-        createGradientMask(layerMask, mask.gradient);
-
-    } else {
-        layerMaskContext.drawImage(mask, 0, 0, width, height);
-    }
-
-
-    layerMaskContext.globalCompositeOperation = "source-out";
-    layerMaskContext.drawImage(options.originalImage, 0, 0, width, height); // Original image
-
-    addLayerToCanvas(canvas, layerMask, options);
-
 }

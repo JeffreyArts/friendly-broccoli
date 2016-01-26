@@ -21,6 +21,10 @@ var watching   = {
 var source    = {
     default: {
         js: [
+            './scripts/index.js',
+            './scripts/layer.js',
+            './scripts/mask.js',
+            
             './scripts/helper-functions/effects/blur.js',
             './scripts/helper-functions/canvas.js',
             './scripts/helper-functions/general.js',
@@ -33,8 +37,6 @@ var source    = {
             './scripts/draw/gradient.js',
             './scripts/draw/image.js',
 
-			'./scripts/layer.js',
-			'./scripts/mask.js',
         ]
     }
 };
