@@ -633,7 +633,11 @@ function clearCanvas(canvas) {
  * Get context
  */
 function getContext(canvas) {
-    return canvas.getContext('2d');
+    var ctx = canvas.getContext('2d');
+
+    // The translate is for preventing blurry lines
+    ctx.translate(0.5, 0.5);
+    return ctx;
 }
 
 function calculatePercentage(value, width) {
